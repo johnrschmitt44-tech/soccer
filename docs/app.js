@@ -100,6 +100,28 @@ function parseSheet(grid) {
   return { meta, players };
 }
 
+
+const FLAGS = {
+  FRANCE: "\u{1F1EB}\u{1F1F7}", NETHERLANDS: "\u{1F1F3}\u{1F1F1}", BELGIUM: "\u{1F1E7}\u{1F1EA}",
+  MEXICO: "\u{1F1F2}\u{1F1FD}", JAPAN: "\u{1F1EF}\u{1F1F5}", SCOTLAND: "\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}",
+  "CZECH REPUBLIC": "\u{1F1E8}\u{1F1FF}", "IVORY COAST": "\u{1F1E8}\u{1F1EE}", IRAN: "\u{1F1EE}\u{1F1F7}",
+  "SOUTH AFRICA": "\u{1F1FF}\u{1F1E6}", QATAR: "\u{1F1F6}\u{1F1E6}", IRAQ: "\u{1F1EE}\u{1F1F6}",
+  SPAIN: "\u{1F1EA}\u{1F1F8}", PORTUGAL: "\u{1F1F5}\u{1F1F9}", NORWAY: "\u{1F1F3}\u{1F1F4}",
+  SWITZERLAND: "\u{1F1E8}\u{1F1ED}", CROATIA: "\u{1F1ED}\u{1F1F7}", TURKIYE: "\u{1F1F9}\u{1F1F7}",
+  EGYPT: "\u{1F1EA}\u{1F1EC}", "SOUTH KOREA": "\u{1F1F0}\u{1F1F7}", BOSNIA: "\u{1F1E7}\u{1F1E6}",
+  "CAPE VERDE": "\u{1F1E8}\u{1F1FB}", "NEW ZEALAND": "\u{1F1F3}\u{1F1FF}", CURACAO: "\u{1F1E8}\u{1F1FC}",
+  ENGLAND: "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}", GERMANY: "\u{1F1E9}\u{1F1EA}",
+  COLOMBIA: "\u{1F1E8}\u{1F1F4}", "UNITED STATES": "\u{1F1FA}\u{1F1F8}", ECUADOR: "\u{1F1EA}\u{1F1E8}",
+  CANADA: "\u{1F1E8}\u{1F1E6}", GHANA: "\u{1F1EC}\u{1F1ED}", AUSTRIA: "\u{1F1E6}\u{1F1F9}",
+  "DR CONGO": "\u{1F1E8}\u{1F1E9}", AUSTRAILIA: "\u{1F1E6}\u{1F1FA}", AUSTRALIA: "\u{1F1E6}\u{1F1FA}",
+  UZBEKISTAN: "\u{1F1FA}\u{1F1FF}", JORDAN: "\u{1F1EF}\u{1F1F4}",
+  ARGENTINA: "\u{1F1E6}\u{1F1F7}", BRAZIL: "\u{1F1E7}\u{1F1F7}", URUGUAY: "\u{1F1FA}\u{1F1FE}",
+  MOROCCO: "\u{1F1F2}\u{1F1E6}", SENEGAL: "\u{1F1F8}\u{1F1F3}", SWEDEN: "\u{1F1F8}\u{1F1EA}",
+  PARAGUAY: "\u{1F1F5}\u{1F1FE}", ALGERIA: "\u{1F1E9}\u{1F1FF}", "SAUDI ARABIA": "\u{1F1F8}\u{1F1E6}",
+  TUNISIA: "\u{1F1F9}\u{1F1F3}", PANAMA: "\u{1F1F5}\u{1F1E6}", HAITI: "\u{1F1ED}\u{1F1F9}",
+};
+const flagFor = (team) => FLAGS[team.toUpperCase().trim()] || "";
+
 function el(tag, cls, text) {
   const node = document.createElement(tag);
   if (cls) node.className = cls;
@@ -130,7 +152,7 @@ function renderLeaderboard(players) {
     const fill = el("div", "lb-fill");
     fill.style.width = `${Math.max(8, (p.total / max) * 100)}%`;
     fill.append(el("span", "lb-name", p.name));
-    if (isLeader) fill.append(el("span", "lb-pot-chip", "POT"));
+    if (isLeader) fill.append(el("span", "lb-pot-chip", "\u{1F3C6} POT"));
     bar.append(fill);
     row.append(bar);
 
@@ -167,7 +189,11 @@ function renderRosters(players) {
     const tbody = el("tbody");
     p.teams.forEach((t) => {
       const tr = el("tr");
-      tr.append(el("td", "col-team", titleCase(t.team)));
+      const teamCell = el("td", "col-team");
+      const flag = flagFor(t.team);
+      if (flag) teamCell.append(el("span", "flag", flag));
+      teamCell.append(document.createTextNode(titleCase(t.team)));
+      tr.append(teamCell);
       [t.w, t.d, t.l].forEach((v) => tr.append(el("td", "col-num", v ? String(v) : "·")));
       tr.append(el("td", "col-num col-pts", String(t.pts)));
       tbody.append(tr);
