@@ -8,7 +8,7 @@ const CONFIG = {
   COMMENTS_TAB: "Comments",
   COMMENTS_RANGE: "A1:D1000",
   // Apps Script web app /exec URL. Comment posting stays hidden until set.
-  COMMENTS_URL: "",
+  COMMENTS_URL: "https://script.google.com/macros/s/AKfycbzmCYtcxGoYa2w0RgxBeV6i13Q-kJXIIKbLRUmSuFIZ7peQ8ev2EXBMBv2cmRGixgDb3Q/exec",
 
   // Column positions (zero-based, A=0). Rows are located by content anchors
   // in app.js because the gviz endpoint drops fully empty rows.
