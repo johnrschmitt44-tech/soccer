@@ -28,9 +28,19 @@
     <p id="error" class="status status-error" hidden></p>
 
     <div id="content" hidden>
+      <section aria-label="Today's games">
+        <h2 class="section-label">Today's Games</h2>
+        <div id="today" class="today-card"></div>
+      </section>
+
       <section aria-label="Leaderboard">
         <h2 class="section-label">Standings</h2>
         <div id="leaderboard" class="leaderboard"></div>
+      </section>
+
+      <section id="ko-section" aria-label="Knockout stage" hidden>
+        <h2 class="section-label">Knockout Stage</h2>
+        <div id="knockout" class="knockout"></div>
       </section>
 
       <section aria-label="Rosters">

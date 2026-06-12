@@ -3,6 +3,8 @@ const CONFIG = {
   SHEET_ID: "1z6nCh_KtBjf6IXKRtVlMyBO6ficaCio1ytegLJDPLqk",
   TAB: "4 Players",
   RANGE: "A1:AF26",
+  FIXTURES_TAB: "Fixtures",
+  FIXTURES_RANGE: "A1:J120",
 
   // Column positions (zero-based, A=0). Rows are located by content anchors
   // in app.js because the gviz endpoint drops fully empty rows.

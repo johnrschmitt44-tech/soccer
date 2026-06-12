@@ -26,13 +26,15 @@ from googleapiclient.discovery import build
 
 TAB = "4 Players"
 
-# Each player block: (roster read range, W/D/L write range)
+# Each player block: (roster read range, W/D/L write range, name header cell)
 PLAYER_BLOCKS = [
-    (f"'{TAB}'!D8:D19", f"'{TAB}'!E8:G19"),
-    (f"'{TAB}'!J8:J19", f"'{TAB}'!K8:M19"),
-    (f"'{TAB}'!P8:P19", f"'{TAB}'!Q8:S19"),
-    (f"'{TAB}'!V8:V19", f"'{TAB}'!W8:Y19"),
+    (f"'{TAB}'!D8:D19", f"'{TAB}'!E8:G19", f"'{TAB}'!D7"),
+    (f"'{TAB}'!J8:J19", f"'{TAB}'!K8:M19", f"'{TAB}'!J7"),
+    (f"'{TAB}'!P8:P19", f"'{TAB}'!Q8:S19", f"'{TAB}'!P7"),
+    (f"'{TAB}'!V8:V19", f"'{TAB}'!W8:Y19", f"'{TAB}'!V7"),
 ]
+
+FIXTURES_TAB = "Fixtures"
 
 # KO Round Wins counters: rows 23-26 (players 1-4), cols Q-U = R32, R16, QF, SF, F
 KO_RANGE = f"'{TAB}'!Q23:U26"
@@ -153,12 +155,17 @@ def main():
     # 1. Rosters come from the sheet: it stays the source of truth for ownership.
     roster_resp = sheets.values().batchGet(
         spreadsheetId=sheet_id,
-        ranges=[blk[0] for blk in PLAYER_BLOCKS],
+        ranges=[blk[0] for blk in PLAYER_BLOCKS] + [blk[2] for blk in PLAYER_BLOCKS],
     ).execute()
+    vrs = roster_resp["valueRanges"]
     rosters = [
         [row[0].strip() for row in vr.get("values", []) if row and row[0].strip()]
-        for vr in roster_resp["valueRanges"]
+        for vr in vrs[:4]
     ]
+    player_names = []
+    for vr in vrs[4:]:
+        raw = (vr.get("values") or [[""]])[0][0]
+        player_names.append(raw.split("-")[-1].strip() if "-" in raw else raw.strip())
 
     # 2. Fetch results, index names, tally records by team id.
     matches = fetch_matches(token)
@@ -169,7 +176,7 @@ def main():
     unmatched = []
     data = []
     ko_grid = []
-    for (_, wdl_range), teams in zip(PLAYER_BLOCKS, rosters):
+    for (_, wdl_range, _name), teams in zip(PLAYER_BLOCKS, rosters):
         wdl_rows = []
         ko_counts = [0] * len(KO_STAGES)
         for team in teams:
@@ -206,8 +213,54 @@ def main():
         body={"valueInputOption": "RAW", "data": data},
     ).execute()
 
+    # --- Fixtures tab: full match list with resolved owners ---
+    owner_by_tid = {}
+    for teams, pname in zip(rosters, player_names):
+        for team in teams:
+            key = norm(team)
+            key = SHEET_ALIASES.get(key, key)
+            tid = name_index.get(key)
+            if tid is not None:
+                owner_by_tid[tid] = pname
+
+    def side_cells(side):
+        return [side.get("name") or "", owner_by_tid.get(side.get("id"), "")]
+
+    fixture_rows = [["utcDate", "stage", "group", "home", "homeOwner",
+                     "away", "awayOwner", "status", "scoreHome", "scoreAway"]]
+    for m in sorted(matches, key=lambda m: m.get("utcDate") or ""):
+        ft = (m.get("score") or {}).get("fullTime") or {}
+        fixture_rows.append([
+            m.get("utcDate") or "",
+            m.get("stage") or "",
+            m.get("group") or "",
+            *side_cells(m["homeTeam"]),
+            *side_cells(m["awayTeam"]),
+            m.get("status") or "",
+            ft.get("home") if ft.get("home") is not None else "",
+            ft.get("away") if ft.get("away") is not None else "",
+        ])
+
+    # Create the tab if it doesn't exist, then clear and rewrite it.
+    try:
+        sheets.batchUpdate(
+            spreadsheetId=sheet_id,
+            body={"requests": [{"addSheet": {"properties": {"title": FIXTURES_TAB}}}]},
+        ).execute()
+    except Exception:
+        pass  # already exists
+    sheets.values().clear(
+        spreadsheetId=sheet_id, range=f"'{FIXTURES_TAB}'!A:J"
+    ).execute()
+    sheets.values().update(
+        spreadsheetId=sheet_id,
+        range=f"'{FIXTURES_TAB}'!A1",
+        valueInputOption="RAW",
+        body={"values": fixture_rows},
+    ).execute()
+
     finished = sum(1 for m in matches if m.get("status") == "FINISHED")
-    print(f"Synced {finished} finished matches at {stamp}.")
+    print(f"Synced {finished} finished matches, {len(fixture_rows)-1} fixtures at {stamp}.")
 
 
 if __name__ == "__main__":

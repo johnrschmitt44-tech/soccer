@@ -327,3 +327,188 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .lb-fill { transition: none; }
 }
+
+/* Today's games + knockout match rows */
+.today-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 14px;
+}
+
+.match-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e7ece7;
+}
+.match-row:last-child { border-bottom: none; }
+
+.match-time {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.match-time.ft { color: var(--ink); }
+.match-time.live { color: #b01030; }
+
+.match-teams {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.match-side {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.match-team { font-weight: 500; }
+.match-vs {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.owner-chip {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--gold-soft);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.owner-chip.none { background: transparent; color: var(--line); }
+
+/* Knockout section */
+.knockout { display: grid; gap: 14px; }
+
+.ko-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ko-legend-item {
+  display: flex;
+  gap: 5px;
+  align-items: baseline;
+  font-family: var(--mono);
+  font-size: 11px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 8px;
+  background: var(--card);
+}
+.ko-legend-item b { font-weight: 500; color: var(--ink-soft); }
+.ko-legend-item i { font-style: normal; font-weight: 600; color: var(--ink); }
+
+.ko-alive {
+  display: grid;
+  gap: 6px;
+}
+.ko-alive-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ko-alive-name {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  min-width: 70px;
+}
+.ko-team-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+.ko-team-chip.dead {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.ko-round {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 14px 4px;
+}
+.ko-round-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 8px 0 4px;
+  border-bottom: 2px solid var(--pitch);
+}
+.ko-round-title {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ko-round-pts {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gold);
+  background: var(--pitch-deep);
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+/* Roster tabs */
+.tabbar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.tab {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-soft);
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.tab:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.tab .tab-pts {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 13px;
+}
+.tab.active {
+  background: var(--pitch-deep);
+  border-color: var(--pitch-deep);
+  color: #fff;
+}
+.tab.active .tab-pts { color: var(--gold); }
+
+.rosters { display: block; }
+.rosters .card { max-width: 560px; }

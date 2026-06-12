@@ -100,6 +100,9 @@ batch-writes:
 - knockout win counts per round into the KO Round Wins block (Q23:U26)
   and third-place match wins into W23:W26
 - a sync timestamp into A1
+- the full match list (kickoff, stage, teams, owners, status, score) into a
+  `Fixtures` tab it creates and rewrites on every run; the site's Today's
+  Games and Knockout sections read from it
 
 Because it recomputes from zero each time, re-runs can never double-count,
 and manual corrections in the sheet survive only until the next run; the
