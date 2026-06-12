@@ -24,36 +24,65 @@ async function fetchGrid() {
   );
 }
 
-const at = (grid, [r, c]) => (grid[r] && grid[r][c] !== undefined ? grid[r][c] : "");
 const num = (v) => (typeof v === "number" ? v : Number(v) || 0);
+const str = (v) => String(v ?? "").trim();
 
-function parsePlayers(grid) {
-  return CONFIG.PLAYERS.map((p) => {
-    const rawName = String(at(grid, p.nameCell));
+function findRow(grid, col, predicate) {
+  for (let r = 0; r < grid.length; r++) {
+    if (predicate(str(grid[r]?.[col]))) return r;
+  }
+  return -1;
+}
+
+function parseSheet(grid) {
+  // Anchor rows by content: gviz drops fully empty rows, so absolute row
+  // numbers from the spreadsheet can't be trusted.
+  const headerRow = findRow(grid, CONFIG.PLAYER_COLS[0], (s) => /^#\d/.test(s));
+  const totalsRow = findRow(grid, CONFIG.PLAYER_COLS[0], (s) => /^totals$/i.test(s));
+  const resultsRow = findRow(grid, CONFIG.RESULTS_ANCHOR_COL, (s) => /^results$/i.test(s));
+  if (headerRow < 0 || totalsRow < 0 || resultsRow < 0) {
+    throw new Error(
+      "Sheet layout not recognized; expected '#1 -' headers, a Totals row, and a RESULTS block"
+    );
+  }
+
+  const potRow = findRow(grid, CONFIG.POT_LABEL_COL, (s) => /^total pot/i.test(s));
+  const syncRow = findRow(grid, 0, (s) => /^last sync/i.test(s));
+
+  const meta = {
+    title: potRow >= 0 ? str(grid[potRow][CONFIG.PLAYER_COLS[0]]) : "",
+    pot: potRow >= 0 ? num(grid[potRow][CONFIG.POT_LABEL_COL + 1]) : 0,
+    lastSync: syncRow >= 0 ? str(grid[syncRow][0]) : "",
+  };
+
+  const players = CONFIG.PLAYER_COLS.map((col, i) => {
+    const rawName = str(grid[headerRow][col]);
     const name = rawName.includes("-")
       ? rawName.split("-").pop().trim()
-      : rawName.trim() || "Player";
+      : rawName || `Player ${i + 1}`;
 
     const teams = [];
-    for (let r = CONFIG.TEAM_ROWS.start; r <= CONFIG.TEAM_ROWS.end; r++) {
-      const team = String(grid[r]?.[p.teamCol] ?? "").trim();
+    for (let r = headerRow + 1; r < totalsRow; r++) {
+      const team = str(grid[r]?.[col]);
       if (!team) continue;
       teams.push({
         team,
-        w: num(grid[r][p.teamCol + 1]),
-        d: num(grid[r][p.teamCol + 2]),
-        l: num(grid[r][p.teamCol + 3]),
-        pts: num(grid[r][p.teamCol + 4]),
+        w: num(grid[r][col + 1]),
+        d: num(grid[r][col + 2]),
+        l: num(grid[r][col + 3]),
+        pts: num(grid[r][col + 4]),
       });
     }
 
     const totals = {
-      w: num(grid[CONFIG.TOTALS_ROW]?.[p.teamCol + 1]),
-      d: num(grid[CONFIG.TOTALS_ROW]?.[p.teamCol + 2]),
-      l: num(grid[CONFIG.TOTALS_ROW]?.[p.teamCol + 3]),
+      w: num(grid[totalsRow]?.[col + 1]),
+      d: num(grid[totalsRow]?.[col + 2]),
+      l: num(grid[totalsRow]?.[col + 3]),
     };
 
-    const rr = p.resultsRow;
+    // Player N sits i+1 rows below the "RESULTS" anchor in both the
+    // RESULTS block and the KO Round Wins block.
+    const rr = resultsRow + 1 + i;
     const gs = num(grid[rr]?.[CONFIG.RESULTS_COLS.gs]);
     const ko = num(grid[rr]?.[CONFIG.RESULTS_COLS.ko]);
     const total = num(grid[rr]?.[CONFIG.RESULTS_COLS.total]);
@@ -66,6 +95,8 @@ function parsePlayers(grid) {
 
     return { name, teams, totals, gs, ko, total, koWins };
   });
+
+  return { meta, players };
 }
 
 function el(tag, cls, text) {
@@ -75,13 +106,11 @@ function el(tag, cls, text) {
   return node;
 }
 
-function renderHeader(grid) {
-  document.getElementById("pool-title").textContent =
-    String(at(grid, CONFIG.CELLS.title)) || "World Cup Pool";
-  const pot = num(at(grid, CONFIG.CELLS.pot));
-  document.getElementById("pot-value").textContent = pot ? `$${pot}` : "—";
-  const sync = String(at(grid, CONFIG.CELLS.lastSync));
-  document.getElementById("last-sync").textContent = sync || "Awaiting first sync";
+function renderHeader(meta) {
+  document.getElementById("pool-title").textContent = meta.title || "World Cup Pool";
+  document.getElementById("pot-value").textContent = meta.pot ? `$${meta.pot}` : "—";
+  document.getElementById("last-sync").textContent =
+    meta.lastSync || "Awaiting first sync";
 }
 
 function renderLeaderboard(players) {
@@ -200,8 +229,8 @@ async function init() {
   }
   try {
     const grid = await fetchGrid();
-    renderHeader(grid);
-    const players = parsePlayers(grid);
+    const { meta, players } = parseSheet(grid);
+    renderHeader(meta);
     renderLeaderboard(players);
     renderRosters(players);
     document.getElementById("loading").hidden = true;
