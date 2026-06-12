@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>World Cup Pool 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@600;800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <h1 id="pool-title" class="title">World Cup Pool 2026</h1>
+      <div class="meta">
+        <span class="pot">Pot <b id="pot-value">—</b></span>
+        <span id="last-sync" class="sync">Loading…</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p id="loading" class="status">Pulling standings from the sheet…</p>
+    <p id="error" class="status status-error" hidden></p>
+
+    <div id="content" hidden>
+      <section aria-label="Leaderboard">
+        <h2 class="section-label">Standings</h2>
+        <div id="leaderboard" class="leaderboard"></div>
+      </section>
+
+      <section aria-label="Rosters">
+        <h2 class="section-label">Rosters</h2>
+        <div id="rosters" class="rosters"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <span>Scores sync automatically from football-data.org via the pool sheet.</span>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
