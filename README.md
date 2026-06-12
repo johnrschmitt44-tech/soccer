@@ -91,7 +91,15 @@ and confirm the sheet fills in. After that the cron handles it.
 
 ## How the updater works
 
-Every run it pulls the full match list for the tournament, recomputes each
+The cron fires every 5 minutes, but the script only writes when results
+could have changed: a match is live, ended within the last 45 minutes, or
+is inside a kickoff window. Outside those windows it exits immediately,
+with a 6-hour staleness backstop so schedule changes still land. Net
+effect: finished results typically reach the sheet within 5-15 minutes of
+full time (GitHub cron jitter plus the free API tier's own status delay
+set the floor).
+
+On a writing run it pulls the full match list for the tournament, recomputes each
 team's group-stage W/D/L and per-round knockout wins from scratch, and
 batch-writes:
 

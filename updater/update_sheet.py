@@ -18,7 +18,7 @@ import os
 import sys
 import unicodedata
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import requests
 from google.oauth2 import service_account
@@ -142,6 +142,45 @@ def compute_records(matches: list):
     return group, ko
 
 
+def parse_iso(s):
+    try:
+        return datetime.fromisoformat(s.replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        return None
+
+
+def should_sync(matches, sheets, sheet_id) -> bool:
+    """Write only when results could have changed, so a 5-minute cron stays
+    quiet between match windows. Backstop: full sync if the sheet is stale,
+    so fixture/schedule changes still land a few times a day."""
+    now = datetime.now(timezone.utc)
+
+    for m in matches:
+        status = m.get("status")
+        if status in ("IN_PLAY", "PAUSED"):
+            return True
+        if status == "FINISHED":
+            updated = parse_iso(m.get("lastUpdated") or "")
+            if updated and now - updated < timedelta(minutes=45):
+                return True  # a match just ended; get it on the sheet
+        kickoff = parse_iso(m.get("utcDate") or "")
+        if kickoff and -timedelta(minutes=10) < now - kickoff < timedelta(hours=3, minutes=30):
+            return True  # inside a match window even if live status lags
+
+    # Staleness backstop: read the A1 timestamp the updater itself writes.
+    try:
+        resp = sheets.values().get(
+            spreadsheetId=sheet_id, range=TIMESTAMP_CELL
+        ).execute()
+        raw = (resp.get("values") or [[""]])[0][0]
+        last = datetime.strptime(
+            raw.replace("Last sync: ", ""), "%Y-%m-%d %H:%M UTC"
+        ).replace(tzinfo=timezone.utc)
+        return now - last > timedelta(hours=6)
+    except Exception:
+        return True  # can't read or parse the stamp; sync to be safe
+
+
 def main():
     token = os.environ["FOOTBALL_DATA_TOKEN"]
     sheet_id = os.environ["SHEET_ID"]
@@ -167,8 +206,11 @@ def main():
         raw = (vr.get("values") or [[""]])[0][0]
         player_names.append(raw.split("-")[-1].strip() if "-" in raw else raw.strip())
 
-    # 2. Fetch results, index names, tally records by team id.
+    # 2. Fetch results and decide whether anything could have changed.
     matches = fetch_matches(token)
+    if not should_sync(matches, sheets, sheet_id):
+        print("No live or recent matches and sheet is fresh; skipping write.")
+        return
     name_index = build_name_index(matches)
     group, ko = compute_records(matches)
 
