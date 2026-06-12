@@ -6,6 +6,7 @@ function gvizUrl() {
     tqx: "out:json",
     sheet: CONFIG.TAB,
     range: CONFIG.RANGE,
+    headers: "0", // stop gviz consuming the first data row as column labels
   });
   return `${base}?${params}`;
 }
