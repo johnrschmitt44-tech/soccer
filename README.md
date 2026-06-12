@@ -122,6 +122,24 @@ in the sheet just works, as long as the name maps to an API team. The
 updater warns in the Actions log if any roster name fails to match, and
 the fix is one line in `SHEET_ALIASES` in `updater/update_sheet.py`.
 
+## Comments
+
+Match comments post through a Google Apps Script web app bound to the
+sheet, so the static site never holds credentials. One-time deploy:
+
+1. Open the pool spreadsheet > Extensions > Apps Script.
+2. Replace the editor contents with `apps-script/comments.gs` from this
+   repo, and save.
+3. Deploy > New deployment > type: Web app. Execute as: **Me**. Who has
+   access: **Anyone**. Click Deploy and authorize when prompted.
+4. Copy the web app URL (ends in `/exec`) into `COMMENTS_URL` in
+   `docs/config.js`, commit, push.
+
+Comments land in a `Comments` tab on the sheet, which doubles as the
+moderation tool: delete a row, the comment is gone on next page load.
+"Anyone" access means anyone with the URL can post; for four friends and
+an $80 pot, the threat model is each other.
+
 ## Decisions you still own
 
 - **The bracket entry grid** (rows 30-79 in the sheet) is not touched by

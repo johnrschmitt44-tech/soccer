@@ -136,6 +136,87 @@ function parseFixtures(grid) {
   return out;
 }
 
+/* ---------- Comments ---------- */
+
+const matchKey = (m) => `${m.date.toISOString()}|${m.home}|${m.away}`;
+
+function parseComments(grid) {
+  // Positional: timestamp, matchKey, name, comment (header text untrusted).
+  if (!grid.length || str(grid[0][0]) !== "timestamp") return {};
+  const byKey = {};
+  for (let r = 1; r < grid.length; r++) {
+    const row = grid[r];
+    if (!row || !str(row[1])) continue;
+    (byKey[str(row[1])] ||= []).push({ name: str(row[2]), text: str(row[3]) });
+  }
+  return byKey;
+}
+
+let COMMENTS = {};
+
+async function postComment(key, name, text) {
+  // no-cors: response is opaque, but the write goes through. Apps Script
+  // doesn't answer preflight, so the body ships as text/plain.
+  await fetch(CONFIG.COMMENTS_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ matchKey: key, name, comment: text }),
+  });
+}
+
+function commentPanel(m) {
+  const key = matchKey(m);
+  const panel = el("div", "cmt-panel");
+  panel.hidden = true;
+
+  const list = el("div", "cmt-list");
+  const renderList = () => {
+    list.replaceChildren();
+    (COMMENTS[key] || []).forEach((c) => {
+      const item = el("div", "cmt");
+      item.append(el("b", null, c.name), document.createTextNode(c.text));
+      list.append(item);
+    });
+  };
+  renderList();
+  panel.append(list);
+
+  if (CONFIG.COMMENTS_URL) {
+    const form = el("div", "cmt-form");
+    const nameIn = el("input");
+    nameIn.placeholder = "Name";
+    nameIn.maxLength = 40;
+    try { nameIn.value = localStorage.getItem("pool-name") || ""; } catch {}
+    const textIn = el("textarea");
+    textIn.placeholder = "Talk your talk";
+    textIn.maxLength = 500;
+    const btn = el("button", null, "Post");
+    btn.addEventListener("click", async () => {
+      const name = nameIn.value.trim();
+      const text = textIn.value.trim();
+      if (!name || !text) return;
+      btn.disabled = true;
+      try {
+        await postComment(key, name, text);
+        try { localStorage.setItem("pool-name", name); } catch {}
+        (COMMENTS[key] ||= []).push({ name, text });
+        renderList();
+        textIn.value = "";
+      } catch {
+        btn.textContent = "Failed, retry";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+    form.append(nameIn, textIn, btn);
+    panel.append(form);
+  } else {
+    panel.append(el("p", "cmt-note", "Comments open once the comment endpoint is wired up."));
+  }
+  return panel;
+}
+
 /* ---------- Flags ---------- */
 
 const FLAGS = {
@@ -238,6 +319,14 @@ function matchRow(m) {
   teams.append(home, el("span", "match-vs", "v"), away);
   row.append(teams);
 
+  const count = (COMMENTS[matchKey(m)] || []).length;
+  const toggle = el("button", `cmt-toggle${count ? " has" : ""}`,
+    count ? `\u{1F4AC} ${count}` : "\u{1F4AC}");
+  toggle.setAttribute("aria-label", "Comments");
+  const panel = commentPanel(m);
+  toggle.addEventListener("click", () => { panel.hidden = !panel.hidden; });
+  row.append(toggle, panel);
+
   return row;
 }
 
@@ -258,6 +347,46 @@ function renderToday(fixtures) {
     return;
   }
   todays.forEach((m) => box.append(matchRow(m)));
+}
+
+/* ---------- Results (past match days) ---------- */
+
+function renderResults(fixtures) {
+  const section = document.getElementById("results-section");
+  const today = dayKey(new Date());
+  const past = fixtures.filter(
+    (m) => m.home && m.away && m.status === "FINISHED" && dayKey(m.date) !== today
+  );
+  if (!past.length) {
+    section.hidden = true;
+    return;
+  }
+  section.hidden = false;
+  const box = document.getElementById("results");
+  box.replaceChildren();
+
+  const byDay = new Map();
+  past.forEach((m) => {
+    const k = dayKey(m.date);
+    if (!byDay.has(k)) byDay.set(k, []);
+    byDay.get(k).push(m);
+  });
+
+  const days = [...byDay.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
+  days.forEach(([k, ms], i) => {
+    const det = document.createElement("details");
+    if (i === 0) det.open = true;
+    const sum = document.createElement("summary");
+    sum.append(
+      el("span", null, new Intl.DateTimeFormat("en-US", {
+        timeZone: TZ, weekday: "short", month: "long", day: "numeric",
+      }).format(ms[0].date)),
+      el("span", "day-count", `${ms.length} match${ms.length > 1 ? "es" : ""}`)
+    );
+    det.append(sum);
+    ms.sort((a, b) => a.date - b.date).forEach((m) => det.append(matchRow(m)));
+    box.append(det);
+  });
 }
 
 /* ---------- Standings ---------- */
@@ -479,15 +608,18 @@ function showError(message) {
 
 async function init() {
   try {
-    const [poolGrid, fixtureGrid] = await Promise.all([
+    const [poolGrid, fixtureGrid, commentGrid] = await Promise.all([
       fetchGrid(CONFIG.TAB, CONFIG.RANGE),
       fetchGrid(CONFIG.FIXTURES_TAB, CONFIG.FIXTURES_RANGE).catch(() => []),
+      fetchGrid(CONFIG.COMMENTS_TAB, CONFIG.COMMENTS_RANGE).catch(() => []),
     ]);
     const { meta, players } = parseSheet(poolGrid);
     const fixtures = parseFixtures(fixtureGrid);
+    COMMENTS = parseComments(commentGrid);
 
     renderHeader(meta);
     renderToday(fixtures);
+    renderResults(fixtures);
     renderLeaderboard(players);
     renderKnockout(fixtures, players);
     renderRosters(players);
