@@ -617,3 +617,17 @@ body {
   .match-row { grid-template-columns: 76px 1fr auto; gap: 8px; }
   .match-time { font-size: 11px; }
 }
+
+/* Seed badge + draft-strength chip */
+.seed {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 5px;
+  margin-left: 8px;
+  vertical-align: 1px;
+}

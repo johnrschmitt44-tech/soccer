@@ -217,6 +217,24 @@ function commentPanel(m) {
   return panel;
 }
 
+/* ---------- Seeds (tournament draft seeding, from the Groups tab) ---------- */
+
+const SEEDS = {
+  FRANCE: 1, SPAIN: 2, ENGLAND: 3, BRAZIL: 4, ARGENTINA: 5, PORTUGAL: 6,
+  GERMANY: 7, NETHERLANDS: 8, BELGIUM: 9, NORWAY: 10, COLOMBIA: 11, MOROCCO: 12,
+  URUGUAY: 13, "UNITED STATES": 14, USA: 14, SWITZERLAND: 15, JAPAN: 16,
+  ECUADOR: 17, CROATIA: 18, MEXICO: 19, SENEGAL: 20, TURKIYE: 21, SWEDEN: 22,
+  AUSTRIA: 23, SCOTLAND: 24, CANADA: 25, "CZECH REPUBLIC": 26, CZECHIA: 26,
+  "IVORY COAST": 27, GHANA: 28, EGYPT: 29, PARAGUAY: 30, ALGERIA: 31,
+  "SOUTH KOREA": 32, "KOREA REPUBLIC": 32, TUNISIA: 33,
+  "BOSNIA & HERZEGOVINA": 34, BOSNIA: 34, "BOSNIA-HERZEGOVINA": 34,
+  AUSTRAILIA: 35, AUSTRALIA: 35, IRAN: 36, "DR CONGO": 37, "CONGO DR": 37,
+  "SOUTH AFRICA": 38, "CAPE VERDE": 39, "CABO VERDE": 39, "SAUDI ARABIA": 40,
+  PANAMA: 41, UZBEKISTAN: 42, QATAR: 43, "NEW ZEALAND": 44, IRAQ: 45,
+  HAITI: 46, CURACAO: 47, "CURAÇAO": 47, JORDAN: 48,
+};
+const seedFor = (team) => SEEDS[team.toUpperCase().trim()] || null;
+
 /* ---------- Flags ---------- */
 
 const FLAGS = {
@@ -532,6 +550,12 @@ function renderRosters(players) {
   wrap.append(rosterCard(p, p.total === topScore && topScore > 0));
 }
 
+function avgSeed(p) {
+  const seeds = p.teams.map((t) => seedFor(t.team)).filter((s) => s);
+  if (!seeds.length) return null;
+  return seeds.reduce((a, b) => a + b, 0) / seeds.length;
+}
+
 function rosterCard(p, leading) {
   const card = el("section", "card");
   if (leading) card.classList.add("leading");
@@ -539,6 +563,8 @@ function rosterCard(p, leading) {
   const head = el("header", "card-head");
   head.append(el("h2", "card-name", p.name));
   const split = el("div", "card-split");
+  const avg = avgSeed(p);
+  if (avg !== null) split.append(chip("AVG SEED", avg.toFixed(1)));
   split.append(chip("GS", p.gs), chip("KO", p.ko), chip("TOTAL", p.total, true));
   head.append(split);
   card.append(head);
@@ -559,6 +585,8 @@ function rosterCard(p, leading) {
     const flag = flagFor(t.team);
     if (flag) teamCell.append(el("span", "flag", flag));
     teamCell.append(document.createTextNode(titleCase(t.team)));
+    const seed = seedFor(t.team);
+    if (seed) teamCell.append(el("span", "seed", `#${seed}`));
     tr.append(teamCell);
     [t.w, t.d, t.l].forEach((v) => tr.append(el("td", "col-num", v ? String(v) : "·")));
     tr.append(el("td", "col-num col-pts", String(t.pts)));
