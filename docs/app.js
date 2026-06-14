@@ -289,6 +289,8 @@ function teamSpan(name, cls) {
   const flag = flagFor(name);
   if (flag) span.append(el("span", "flag", flag));
   span.append(document.createTextNode(name ? titleCase(name) : "TBD"));
+  const seed = name ? seedFor(name) : null;
+  if (seed) span.append(el("span", "seed", `#${seed}`));
   return span;
 }
 
